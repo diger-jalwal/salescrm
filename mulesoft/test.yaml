@@ -2,4 +2,4 @@
   become: true
   hosts: all
   roles:
-   - {role: /home/cloud_user/mulesoft}
+   - {role: /home/cloud_user/salescrm/mulesoft}

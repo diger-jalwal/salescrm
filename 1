@@ -71,22 +71,15 @@
   unarchive:
     src: /tmp/mule-ee-distribution-standalone-4.3.0.zip
     dest: /opt/
-    owner: cloud_user
-    group: cloud_user
     remote_src: yes
   become: yes
 
 # Set home path
 - name: Home path for mulesoft
-  shell: export MULE_HOME=~/opt/mule-enterprise-standalone-4.3.0
+  command:  export MULE_HOME=~/opt/mule-enterprise-standalone-4.3.0
 
-# Configure Linux/unix Daemon
-#- name: Mulesoft as a linux/unix Daemon
-#  shell: /opt/mule-enterprise-standalone-4.3.0/bin/mule install
-
-# Start Mule soft using daemon
-- name: Mule start
-  shell: /opt/mule-enterprise-standalone-4.3.0/bin/mule start
-
+# Start Mule soft
+- name: Start mulesoft 
+  command: $MULE_HOME/bin/mule
 
 
