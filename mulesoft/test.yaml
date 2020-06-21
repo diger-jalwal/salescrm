@@ -1,0 +1,5 @@
+- name: 
+  become: true
+  hosts: all
+  roles:
+   - {role: /home/cloud_user/mulesoft}
