@@ -9,3 +9,4 @@ mule_zip_file: mule-ee-distribution-standalone-4.3.0.zip
 mule_daemon: install
 mule_home_string: '/home/{{ cloud_user }}/.bash_profile'
 mule_start: start
+mule_lic_filepath: /opt/mule-enterprise-standalone-4.3.0/conf

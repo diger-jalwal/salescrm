@@ -102,12 +102,37 @@
   become: yes
 
 # Configure Linux/unix Daemon
-#- name: Mulesoft as a linux/unix Daemon
-#  shell: "{{ mule_soft_dir }} {{ mule_daemon }}"
+- name: Mulesoft as a linux/unix Daemon
+  shell: "{{ mule_soft_dir }} {{ mule_daemon }}"
 
 # Start Mule soft using daemon
 - name: Mule start
   shell: "{{ mule_soft_dir }} {{ mule_start }}"
 
+# Stop Mule soft using daemon
+- name: Mule soft stop
+  shell: '{{ mule_soft_dir }} stop'
 
+# Delete the Trial version license version file
+- name: Remove Trial version License file (delete file)
+  file:
+    path: '{{ mule_lic_filepath }}/muleLicenseKey.lic'
+    state: absent
+
+# Copy the EE License file from local machine to remote machine
+- name: Copy file with owner and permissions
+  copy:
+    src: '/tmp/{{ mule_lic_filepath }}'
+    dest: "{{ mule_lic_filepath }}"
+    owner: "{{ mule_user }}"
+    group: "{{ mule_user }}"
+    mode: '0644'
+
+# Stop Mule soft using daemon
+- name: Mule soft stop
+  shell: '{{ mule_soft_dir }} -installLicense license.lic'
+
+#Start Mule soft using daemon after the license file installation
+- name: Mule soft start
+  shell: "{{ mule_soft_dir }} {{ mule_start }}"
 
