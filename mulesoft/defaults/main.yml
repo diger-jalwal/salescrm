@@ -4,9 +4,14 @@ java_root_dir: /usr/share/java-1.8
 java_jdk_dir: '{{ java_root_dir }}/jdk8u252-b09'
 mule_soft_dir: /opt/mule-enterprise-standalone-4.3.0/bin/mule
 mule_inst_dir: /opt/mule-enterprise-standalone-4.3.0
-mule_user: cloud_user
+mule_user: test
 mule_zip_file: mule-ee-distribution-standalone-4.3.0.zip
 mule_daemon: install
 mule_home_string: '/home/{{ cloud_user }}/.bash_profile'
 mule_start: start
-mule_lic_filepath: /opt/mule-enterprise-standalone-4.3.0/conf
+mule_lic_path: /opt/mule-enterprise-standalone-4.3.0/conf
+mule_lic_file: license-nonProd-ELA.lic
+java_initmemory: 4096
+java_maxmemory: 8192
+mule_host_details: cd2c04c1-4efe-4ae8-8e29-f1e603de9750---318821
+mule_bin_path: /opt/mule-enterprise-standalone-4.3.0/bin

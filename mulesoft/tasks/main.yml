@@ -16,6 +16,9 @@
   file:
     name: "{{ java_root_dir }}"
     state: directory
+    owner: "{{ mule_user }}"
+    group: "{{ mule_user }}"
+    mode: '0755'
   when: not dir.stat.exists
   become: yes
   tags:
@@ -62,24 +65,41 @@
     name: unzip
     state: latest
 
-# Copy the trial version of 4.3.0 from local machine to remote machine
-- name: Copy file with owner and permissions
-  copy:
-    src: /tmp/mule-ee-distribution-standalone-4.3.0.zip
-    dest: /tmp
-    owner: "{{ mule_user }}"
-    group: "{{ mule_user }}"
-    mode: '0644'
-
-# Unarchive the file
+# Download and  Unarchive the trial version of mulesoft.
 - name: Unarchive Mule EE on the remote machine
   unarchive:
-    src: /tmp/mule-ee-distribution-standalone-4.3.0.zip
+    src: http://s3.amazonaws.com/new-mule-artifacts/mule-ee-distribution-standalone-4.3.0.zip 
     dest: /opt/
     owner: "{{ mule_user }}"
     group: "{{ mule_user }}"
     remote_src: yes
   become: yes
+
+# Add custome fidls to wrapper config file.
+- name: Add config to wrapper config file.
+  lineinfile:
+    path: '{{ mule_lic_path }}/wrapper.conf'
+    line: wrapper.java.additional.100=-Dmule.env=dev
+
+# Add custome fidls to wrapper config file.
+- name: Add config to wrapper config file.
+  lineinfile:
+    path: '{{ mule_lic_path }}/wrapper.conf'
+    line: wrapper.java.additional.101=-Dmule.secure-key=non-prod-enc-key
+
+# Setting the Memory for the Mulesoft
+- name: Ensure SELinux is set to enforcing mode
+  lineinfile:
+    path: '{{ mule_lic_path }}/wrapper.conf'
+    regexp: '^wrapper.java.initmemory='
+    line: 'wrapper.java.initmemory={{ java_initmemory }}'
+
+- name: Ensure SELinux is set to enforcing mode
+  lineinfile:
+    path: '{{ mule_lic_path }}/wrapper.conf'
+    regexp: '^wrapper.java.maxmemory='
+    line: 'wrapper.java.maxmemory={{ java_maxmemory  }}'
+
 
 # Delete the Mule zip file from tmp forlder 
 - name: Delete Java Mule zip file
@@ -90,49 +110,82 @@
   tags:
     - mule_cleanup
 
-# Set home path
-- name: Home path for mulesoft
-  shell: 'export MULE_HOME=~{{ mule_inst_dir }}'
-
 # Add MULE HOME path to profile file.
 - name: Add MULE HOME path to profile file.
   lineinfile:
     path: '/home/{{ mule_user }}/.bash_profile'
-    line: 'export MULE_HOME=~{{ mule_inst_dir }}'
-  become: yes
+    line: export MULE_HOME=/opt/mule-enterprise-standalone-4.3.0
+  
 
-# Configure Linux/unix Daemon
+#  Configure Linux/unix Daemon
 - name: Mulesoft as a linux/unix Daemon
   shell: "{{ mule_soft_dir }} {{ mule_daemon }}"
 
-# Start Mule soft using daemon
-- name: Mule start
-  shell: "{{ mule_soft_dir }} {{ mule_start }}"
-
-# Stop Mule soft using daemon
-- name: Mule soft stop
-  shell: '{{ mule_soft_dir }} stop'
 
 # Delete the Trial version license version file
 - name: Remove Trial version License file (delete file)
   file:
-    path: '{{ mule_lic_filepath }}/muleLicenseKey.lic'
+    path: '{{ mule_lic_path }}/muleLicenseKey.lic'
     state: absent
 
 # Copy the EE License file from local machine to remote machine
 - name: Copy file with owner and permissions
   copy:
-    src: '/tmp/{{ mule_lic_filepath }}'
-    dest: "{{ mule_lic_filepath }}"
+    src: '/tmp/{{ mule_lic_file }}'
+    dest: "{{ mule_lic_path }}"
     owner: "{{ mule_user }}"
     group: "{{ mule_user }}"
     mode: '0644'
 
 # Stop Mule soft using daemon
-- name: Mule soft stop
-  shell: '{{ mule_soft_dir }} -installLicense license.lic'
+- name: Mulesoft Lic file installation.
+  command: '{{ mule_soft_dir }} -installLicense {{ mule_lic_path }}/license-nonProd-ELA.lic'
+
+# testing of Mule setup
+- name: Mulesoft testing
+  copy:
+    src: '/home/test/muleLicenseKey.lic'
+    dest: "{{ mule_lic_path }}"
+    owner: "{{ mule_user }}"
+    group: "{{ mule_user }}"
+    mode: '0644'
+    remote_src: yes
 
 #Start Mule soft using daemon after the license file installation
+- name: Mule soft start
+  shell: "{{ mule_soft_dir }} {{ mule_start }}"
+
+#Register Mule server with Control Plane
+- name: Register Mule server with control plane
+  shell: "{{ mule_bin_path }}/amc_setup -H {{ mule_host_details }} {{ server_name }}"
+
+- name: Create Mule AM  directory
+  file:
+    name: "{{ mule_am_dir }}"
+    owner: "{{ mule_user }}"
+    group: "{{ mule_user }}"
+    mode: '0755'
+    state: directory
+
+# Download and Unarchive Mule Monitering  on the remote machine
+- name: Download and Unarchive Mule Monitering  on the remote machine
+  unarchive:
+    src: https://s3.amazonaws.com/cdn-anypoint-prod/artifacts/monitoring-center-ui/app/hybrid/am-2.2.3.0.zip
+    dest: "{{ mule_am_dir  }}"
+    owner: "{{ mule_user }}"
+    group: "{{ mule_user }}"
+    remote_src: yes
+  become: yes
+
+# Stop Mule soft for the agent installation
+- name: Mule soft stop for the agent installation
+  shell: "{{ mule_soft_dir }} {{ mule_start }}"
+
+# Install Monitoring agent
+- name: Install minitoring agent
+  command: '{{ mule_am_dir }}/bin/install'
+
+# Start Mule soft after agent installation
 - name: Mule soft start
   shell: "{{ mule_soft_dir }} {{ mule_start }}"
 
