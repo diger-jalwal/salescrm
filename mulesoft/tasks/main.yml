@@ -17,7 +17,7 @@
     name: "{{ java_root_dir }}"
     state: directory
     owner: "{{ mule_user }}"
-    group: "{{ mule_user }}"
+    group: dce
     mode: '0755'
   when: not dir.stat.exists
   become: yes
@@ -31,7 +31,7 @@
     src: /tmp/{{ java_archive_name }}
     dest: "{{ java_root_dir }}"
     owner: "{{ mule_user }}"
-    group: "{{ mule_user }}"
+    group: dce
     remote_src: yes     
   when: not dir.stat.exists
   become: yes
@@ -71,7 +71,7 @@
     src: http://s3.amazonaws.com/new-mule-artifacts/mule-ee-distribution-standalone-4.3.0.zip 
     dest: /opt/
     owner: "{{ mule_user }}"
-    group: "{{ mule_user }}"
+    group: dce
     remote_src: yes
   become: yes
 
@@ -79,7 +79,7 @@
 - name: Add config to wrapper config file.
   lineinfile:
     path: '{{ mule_lic_path }}/wrapper.conf'
-    line: wrapper.java.additional.100=-Dmule.env=dev
+    line: wrapper.java.additional.100=-Dmule.env=stg
 
 # Add custome fidls to wrapper config file.
 - name: Add config to wrapper config file.
@@ -88,13 +88,13 @@
     line: wrapper.java.additional.101=-Dmule.secure-key=non-prod-enc-key
 
 # Setting the Memory for the Mulesoft
-- name: Ensure SELinux is set to enforcing mode
+- name: updating the wrapper conf file
   lineinfile:
     path: '{{ mule_lic_path }}/wrapper.conf'
     regexp: '^wrapper.java.initmemory='
     line: 'wrapper.java.initmemory={{ java_initmemory }}'
 
-- name: Ensure SELinux is set to enforcing mode
+- name: updating the wrapper conf file
   lineinfile:
     path: '{{ mule_lic_path }}/wrapper.conf'
     regexp: '^wrapper.java.maxmemory='
@@ -134,12 +134,12 @@
     src: '/tmp/{{ mule_lic_file }}'
     dest: "{{ mule_lic_path }}"
     owner: "{{ mule_user }}"
-    group: "{{ mule_user }}"
+    group: dce
     mode: '0644'
 
 # Stop Mule soft using daemon
 - name: Mulesoft Lic file installation.
-  command: '{{ mule_soft_dir }} -installLicense {{ mule_lic_path }}/license-nonProd-ELA.lic'
+  shell: '{{ mule_bin_path }}/mule -installLicense {{ mule_lic_path }}/license-nonProd-ELA.lic'
 
 # testing of Mule setup
 - name: Mulesoft testing
@@ -147,45 +147,53 @@
     src: '/home/test/muleLicenseKey.lic'
     dest: "{{ mule_lic_path }}"
     owner: "{{ mule_user }}"
-    group: "{{ mule_user }}"
+    group: dce
     mode: '0644'
     remote_src: yes
+  become: yes
 
 #Start Mule soft using daemon after the license file installation
-- name: Mule soft start
-  shell: "{{ mule_soft_dir }} {{ mule_start }}"
+#- name: Mule soft start
+#  shell: "{{ mule_soft_dir }} {{ mule_start }}"
 
 #Register Mule server with Control Plane
 - name: Register Mule server with control plane
   shell: "{{ mule_bin_path }}/amc_setup -H {{ mule_host_details }} {{ server_name }}"
 
-- name: Create Mule AM  directory
-  file:
-    name: "{{ mule_am_dir }}"
-    owner: "{{ mule_user }}"
-    group: "{{ mule_user }}"
-    mode: '0755'
-    state: directory
+#- name: Create Mule AM  directory
+#  file:
+#    name: "{{ mule_am_dir }}"
+#    owner: "{{ mule_user }}"
+#    group: "{{ mule_user }}"
+#    mode: '0755'
+#    state: directory
 
 # Download and Unarchive Mule Monitering  on the remote machine
-- name: Download and Unarchive Mule Monitering  on the remote machine
-  unarchive:
-    src: https://s3.amazonaws.com/cdn-anypoint-prod/artifacts/monitoring-center-ui/app/hybrid/am-2.2.3.0.zip
-    dest: "{{ mule_am_dir  }}"
-    owner: "{{ mule_user }}"
-    group: "{{ mule_user }}"
-    remote_src: yes
-  become: yes
+#- name: Download and Unarchive Mule Monitering  on the remote machine
+#  unarchive:
+#    src: https://s3.amazonaws.com/cdn-anypoint-prod/artifacts/monitoring-center-ui/app/hybrid/am-2.2.3.0.zip
+#    dest: "{{ mule_inst_dir }}"
+#    owner: "{{ mule_user }}"
+#    group: "{{ mule_user }}"
+#    remote_src: yes
+#  become: yes
 
-# Stop Mule soft for the agent installation
-- name: Mule soft stop for the agent installation
-  shell: "{{ mule_soft_dir }} {{ mule_start }}"
+# Install python module
+#- name: Install python module pexpect
+#  shell: easy_install pexpect
 
 # Install Monitoring agent
-- name: Install minitoring agent
-  command: '{{ mule_am_dir }}/bin/install'
+#- name: Install minitoring agent
+#  expect:
+#    command: '{{ mule_inst_dir }}/am/bin/install'
+#    responses:
+#      (.*)Do you want to use monitoring as a service?(.*): "y"
+       
 
 # Start Mule soft after agent installation
 - name: Mule soft start
   shell: "{{ mule_soft_dir }} {{ mule_start }}"
 
+# Start Mule soft after agent installation
+#- name: Mule soft monitor setup
+#  shell: '{{ mule_inst_dir }}/am/bin/setup'
